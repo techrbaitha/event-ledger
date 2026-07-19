@@ -1,9 +1,9 @@
 package io.github.techrbaitha.eventledger.gateway.client;
 
 import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
+import io.github.techrbaitha.eventledger.gateway.dto.TransactionResponse;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(
         name = "account-service",
@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 )
 public interface AccountServiceClient {
 
-    @PostMapping("/internal/events")
-    void processEvent(@RequestBody EventRequest request);
+    @PostMapping("/accounts/{accountId}/transactions")
+    TransactionResponse applyTransaction(
+            @PathVariable String accountId,
+            @RequestBody EventRequest request);
 
 }
