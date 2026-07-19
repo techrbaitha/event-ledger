@@ -1,15 +1,16 @@
 package io.github.techrbaitha.eventledger.gateway.service;
 
-import io.github.techrbaitha.eventledger.gateway.exception.ServiceUnavailableException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.techrbaitha.eventledger.gateway.client.AccountServiceClient;
 import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
 import io.github.techrbaitha.eventledger.gateway.dto.EventResponse;
 import io.github.techrbaitha.eventledger.gateway.entity.EventEntity;
 import io.github.techrbaitha.eventledger.gateway.exception.DuplicateEventException;
+import io.github.techrbaitha.eventledger.gateway.exception.ServiceUnavailableException;
 import io.github.techrbaitha.eventledger.gateway.repository.EventRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,13 +22,70 @@ public class EventService {
 
     private final EventRepository repository;
     private final AccountServiceClient accountServiceClient;
+    private final Counter processedEventsCounter;
 
     public EventService(
             EventRepository repository,
-            AccountServiceClient accountServiceClient) {
+            AccountServiceClient accountServiceClient,
+            MeterRegistry meterRegistry) {
 
         this.repository = repository;
         this.accountServiceClient = accountServiceClient;
+
+        this.processedEventsCounter = Counter.builder("gateway.events.processed")
+                .description("Total events successfully processed by gateway")
+                .register(meterRegistry);
+    }
+
+    @CircuitBreaker(
+            name = "accountService",
+            fallbackMethod = "accountServiceFallback"
+    )
+    public EventResponse processEvent(EventRequest request) {
+
+        EventEntity entity = new EventEntity(
+                request.eventId(),
+                request.accountId(),
+                request.type(),
+                request.amount(),
+                request.currency(),
+                request.eventTimestamp()
+        );
+
+        try {
+
+            // Persist event in Gateway database
+            repository.saveAndFlush(entity);
+
+            // Increment custom metric
+            processedEventsCounter.increment();
+
+            // Forward transaction to Account Service
+            accountServiceClient.applyTransaction(
+                    request.accountId(),
+                    request
+            );
+
+            log.info(
+                    "Event persisted and transaction applied successfully. eventId={}",
+                    request.eventId()
+            );
+
+            return new EventResponse(
+                    request.eventId(),
+                    "ACCEPTED",
+                    "Event accepted successfully."
+            );
+
+        } catch (DataIntegrityViolationException ex) {
+
+            log.warn(
+                    "Duplicate event received. eventId={}",
+                    request.eventId()
+            );
+
+            throw new DuplicateEventException(request.eventId());
+        }
     }
 
     public EventResponse accountServiceFallback(
@@ -41,54 +99,7 @@ public class EventService {
         );
 
         throw new ServiceUnavailableException(
-                "Account Service is currently unavailable.");
-    }
-
-    @CircuitBreaker(
-            name = "accountService",
-            fallbackMethod = "accountServiceFallback"
-    )
-    public EventResponse processEvent(EventRequest request) {
-
-        log.info(
-                "Event persisted successfully. eventId={}",
-                request.eventId()
+                "Account Service is currently unavailable."
         );
-
-        EventEntity entity = new EventEntity(
-                request.eventId(),
-                request.accountId(),
-                request.type(),
-                request.amount(),
-                request.currency(),
-                request.eventTimestamp()
-        );
-
-        try {
-
-            // Persist in Gateway DB
-            repository.saveAndFlush(entity);
-
-            // Forward transaction to Account Service
-            accountServiceClient.applyTransaction(
-                    request.accountId(),
-                    request
-            );
-
-            log.info("Event persisted and transaction applied. eventId={}",
-                    request.eventId());
-
-            return new EventResponse(
-                    request.eventId(),
-                    "ACCEPTED",
-                    "Event accepted successfully."
-            );
-
-        } catch (DataIntegrityViolationException ex) {
-
-            log.warn("Duplicate event received. eventId={}", request.eventId());
-
-            throw new DuplicateEventException(request.eventId());
-        }
     }
 }
