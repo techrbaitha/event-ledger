@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.account.dto;
+package io.github.techrbaitha.eventledger.gateway.dto;
 
 import java.util.List;
 

@@ -1,6 +1,10 @@
-package io.github.techrbaitha.eventledger.account.entity;
+package io.github.techrbaitha.eventledger.gateway.entity;
 
+import io.github.techrbaitha.eventledger.gateway.enums.TransactionType;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,8 +31,9 @@ public class AccountTransaction {
     @Column(nullable = false)
     private String accountId;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String type;
+    private TransactionType type;
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -42,15 +47,22 @@ public class AccountTransaction {
     public AccountTransaction(
             String eventId,
             String accountId,
-            String type,
+            TransactionType type,
             BigDecimal amount,
             String currency,
             Instant eventTimestamp) {
+
         this.eventId = eventId;
         this.accountId = accountId;
         this.type = type;
         this.amount = amount;
         this.currency = currency;
         this.eventTimestamp = eventTimestamp;
+    }
+
+    public AccountTransaction(@NotBlank(message = "eventId is required") String eventId, @NotBlank(message = "accountId is required") String accountId, @NotBlank(message = "type is required") String type, @NotNull(message = "amount is required") @Positive(message = "amount must be greater than zero") BigDecimal amount, @NotBlank(message = "currency is required") String currency, @NotNull(message = "eventTimestamp is required") Instant eventTimestamp) {
+    }
+
+    public AccountTransaction(String s, String s1, TransactionType transactionType) {
     }
 }

@@ -1,5 +1,6 @@
 package io.github.techrbaitha.eventledger.gateway.filter;
 
+import io.github.techrbaitha.eventledger.gateway.util.AppConstants;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +15,7 @@ import java.util.UUID;
 @Component
 public class TraceFilter extends OncePerRequestFilter {
 
-    public static final String TRACE_ID = "X-Trace-Id";
+    public static final String TRACE_ID = AppConstants.TRACE_ID_HEADER;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

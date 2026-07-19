@@ -1,18 +1,20 @@
-package io.github.techrbaitha.eventledger.account.service;
+package io.github.techrbaitha.eventledger.gateway.service;
 
-import io.github.techrbaitha.eventledger.account.dto.EventRequest;
-import io.github.techrbaitha.eventledger.account.dto.TransactionResponse;
-import io.github.techrbaitha.eventledger.account.entity.AccountTransaction;
-import io.github.techrbaitha.eventledger.account.repository.AccountTransactionRepository;
-import io.github.techrbaitha.eventledger.account.dto.AccountBalanceResponse;
-import io.github.techrbaitha.eventledger.account.dto.AccountDetailsResponse;
-
-import java.math.BigDecimal;
-import java.util.List;
+import io.github.techrbaitha.eventledger.gateway.dto.AccountBalanceResponse;
+import io.github.techrbaitha.eventledger.gateway.dto.AccountDetailsResponse;
+import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
+import io.github.techrbaitha.eventledger.gateway.dto.TransactionResponse;
+import io.github.techrbaitha.eventledger.gateway.entity.AccountTransaction;
+import io.github.techrbaitha.eventledger.gateway.enums.TransactionType;
+import io.github.techrbaitha.eventledger.gateway.exception.DuplicateTransactionException;
+import io.github.techrbaitha.eventledger.gateway.repository.AccountTransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @Transactional
@@ -31,7 +33,7 @@ public class AccountService {
                 repository.findByAccountIdOrderByEventTimestampAsc(accountId);
 
         BigDecimal balance = transactions.stream()
-                .map(t -> "CREDIT".equalsIgnoreCase(t.getType())
+                .map(t -> "CREDIT".equalsIgnoreCase(String.valueOf(t.getType()))
                         ? t.getAmount()
                         : t.getAmount().negate())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -51,7 +53,8 @@ public class AccountService {
                         t.getType(),
                         t.getAmount(),
                         t.getCurrency(),
-                        t.getEventTimestamp()))
+                        t.getEventTimestamp()
+                ))
                 .toList();
 
         return new AccountDetailsResponse(
@@ -61,12 +64,11 @@ public class AccountService {
         );
     }
 
-
     public TransactionResponse applyTransaction(EventRequest request) {
+
         repository.findByEventId(request.eventId())
                 .ifPresent(transaction -> {
-                    throw new IllegalArgumentException(
-                            "Duplicate event: " + request.eventId());
+                    throw new DuplicateTransactionException(request.eventId());
                 });
 
         repository.save(new AccountTransaction(
@@ -89,5 +91,4 @@ public class AccountService {
                 "Transaction applied successfully."
         );
     }
-
 }

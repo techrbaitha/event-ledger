@@ -5,9 +5,9 @@ import io.github.techrbaitha.eventledger.gateway.client.AccountServiceClient;
 import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
 import io.github.techrbaitha.eventledger.gateway.dto.EventResponse;
 import io.github.techrbaitha.eventledger.gateway.entity.EventEntity;
-import io.github.techrbaitha.eventledger.gateway.exception.DuplicateEventException;
 import io.github.techrbaitha.eventledger.gateway.exception.ServiceUnavailableException;
 import io.github.techrbaitha.eventledger.gateway.repository.EventRepository;
+import io.github.techrbaitha.eventledger.gateway.util.AppConstants;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,7 @@ public class EventService {
         this.repository = repository;
         this.accountServiceClient = accountServiceClient;
 
-        this.processedEventsCounter = Counter.builder("gateway.events.processed")
+        this.processedEventsCounter = Counter.builder(AppConstants.EVENTS_PROCESSED_METRIC)
                 .description("Total events successfully processed by gateway")
                 .register(meterRegistry);
     }
@@ -79,12 +79,16 @@ public class EventService {
 
         } catch (DataIntegrityViolationException ex) {
 
-            log.warn(
-                    "Duplicate event received. eventId={}",
-                    request.eventId()
-            );
+            log.warn("Duplicate event received. eventId={}", request.eventId());
 
-            throw new DuplicateEventException(request.eventId());
+            EventEntity existing = repository.findByEventId(request.eventId())
+                    .orElseThrow(() -> ex);
+
+            return new EventResponse(
+                    existing.getEventId(),
+                    "ACCEPTED",
+                    "Duplicate event ignored."
+            );
         }
     }
 

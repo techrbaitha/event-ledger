@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Map;
 
 public record EventRequest(
 
@@ -28,9 +27,7 @@ public record EventRequest(
         String currency,
 
         @NotNull(message = "eventTimestamp is required")
-        Instant eventTimestamp,
-
-        Map<String, Object> metadata
+        Instant eventTimestamp
 
 ) {
 }

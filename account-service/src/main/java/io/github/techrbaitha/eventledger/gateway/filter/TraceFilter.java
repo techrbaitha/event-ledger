@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.account.filter;
+package io.github.techrbaitha.eventledger.gateway.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

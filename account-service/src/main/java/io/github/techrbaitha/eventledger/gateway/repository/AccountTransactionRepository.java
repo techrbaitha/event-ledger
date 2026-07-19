@@ -1,6 +1,6 @@
-package io.github.techrbaitha.eventledger.account.repository;
+package io.github.techrbaitha.eventledger.gateway.repository;
 
-import io.github.techrbaitha.eventledger.account.entity.AccountTransaction;
+import io.github.techrbaitha.eventledger.gateway.entity.AccountTransaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
