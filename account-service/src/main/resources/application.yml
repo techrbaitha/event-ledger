@@ -1,6 +1,25 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: account-service
 
-server:
-  port: 8081
+  datasource:
+    url: jdbc:h2:mem:accountdb
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

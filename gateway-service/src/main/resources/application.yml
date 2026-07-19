@@ -29,3 +29,6 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+account-service:
+  url: http://localhost:8081
