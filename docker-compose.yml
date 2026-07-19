@@ -1,0 +1,19 @@
+services:
+
+  account-service:
+    build:
+      context: ./account-service
+    container_name: account-service
+    ports:
+      - "8081:8081"
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+    container_name: gateway-service
+    depends_on:
+      - account-service
+    ports:
+      - "8080:8080"
+    environment:
+      ACCOUNT_SERVICE_URL: http://account-service:8081
