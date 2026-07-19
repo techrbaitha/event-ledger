@@ -23,3 +23,7 @@ management:
     web:
       exposure:
         include: health,info
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{traceId}] %logger - %msg%n"

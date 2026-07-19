@@ -10,6 +10,7 @@ import io.github.techrbaitha.eventledger.account.dto.AccountDetailsResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -77,7 +78,11 @@ public class AccountService {
                 request.eventTimestamp()
         ));
 
-        log.info("Transaction stored. eventId={}", request.eventId());
+        log.info(
+                "traceId={} Transaction stored. eventId={}",
+                MDC.get("traceId"),
+                request.eventId()
+        );
 
         return new TransactionResponse(
                 "SUCCESS",
