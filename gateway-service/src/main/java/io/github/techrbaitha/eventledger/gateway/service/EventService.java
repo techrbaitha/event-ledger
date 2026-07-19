@@ -33,6 +33,12 @@ public class EventService {
             EventRequest request,
             Exception ex) {
 
+        log.error(
+                "Account Service unavailable. eventId={}, reason={}",
+                request.eventId(),
+                ex.getMessage()
+        );
+
         throw new ServiceUnavailableException(
                 "Account Service is currently unavailable.");
     }
