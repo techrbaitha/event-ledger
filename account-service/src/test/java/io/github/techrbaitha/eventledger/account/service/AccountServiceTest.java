@@ -1,6 +1,7 @@
 package io.github.techrbaitha.eventledger.account.service;
 
 import io.github.techrbaitha.eventledger.account.dto.AccountBalanceResponse;
+import io.github.techrbaitha.eventledger.account.dto.AccountDetailsResponse;
 import io.github.techrbaitha.eventledger.account.dto.EventRequest;
 import io.github.techrbaitha.eventledger.account.dto.TransactionResponse;
 import io.github.techrbaitha.eventledger.account.entity.AccountTransaction;
@@ -36,6 +37,7 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
+
         request = new EventRequest(
                 "evt-001",
                 "acct-001",
@@ -55,7 +57,8 @@ class AccountServiceTest {
         when(repository.save(any(AccountTransaction.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        TransactionResponse response = accountService.applyTransaction(request);
+        TransactionResponse response =
+                accountService.applyTransaction(request);
 
         assertEquals("SUCCESS", response.status());
         assertEquals("Transaction applied successfully.", response.message());
@@ -74,7 +77,8 @@ class AccountServiceTest {
                 () -> accountService.applyTransaction(request)
         );
 
-        verify(repository, never()).save(any(AccountTransaction.class));
+        verify(repository, never())
+                .save(any(AccountTransaction.class));
     }
 
     @Test
@@ -105,7 +109,10 @@ class AccountServiceTest {
         AccountBalanceResponse balance =
                 accountService.getBalance("acct-001");
 
-        assertEquals(new BigDecimal("300"), balance.balance());
+        assertEquals(
+                new BigDecimal("300"),
+                balance.balance()
+        );
     }
 
     @Test
@@ -117,16 +124,49 @@ class AccountServiceTest {
         AccountBalanceResponse balance =
                 accountService.getBalance("acct-001");
 
-        assertEquals(BigDecimal.ZERO, balance.balance());
+        assertEquals(
+                BigDecimal.ZERO,
+                balance.balance()
+        );
     }
 
     @Test
     void shouldReturnTransactionsOrderedByTimestamp() {
 
-        when(repository.findByAccountIdOrderByEventTimestampAsc("acct-001"))
-                .thenReturn(List.of());
+        AccountTransaction transaction = new AccountTransaction(
+                "evt-001",
+                "acct-001",
+                TransactionType.CREDIT,
+                new BigDecimal("100.00"),
+                "USD",
+                Instant.parse("2026-05-15T14:02:11Z")
+        );
 
-        accountService.getAccountDetails("acct-001");
+        when(repository.findByAccountIdOrderByEventTimestampAsc("acct-001"))
+                .thenReturn(List.of(transaction));
+
+        AccountDetailsResponse response =
+                accountService.getAccountDetails("acct-001");
+
+        assertNotNull(response);
+        assertEquals("acct-001", response.accountId());
+
+        assertNotNull(response.balance());
+        assertEquals(new BigDecimal("100.00"), response.balance().balance());
+
+        assertEquals(1, response.transactions().size());
+
+        EventRequest event = response.transactions().get(0);
+
+        assertEquals("evt-001", event.eventId());
+        assertEquals("acct-001", event.accountId());
+        assertEquals(TransactionType.CREDIT, event.type());
+        assertEquals(new BigDecimal("100.00"), event.amount());
+        assertEquals("USD", event.currency());
+        assertEquals(
+                Instant.parse("2026-05-15T14:02:11Z"),
+                event.eventTimestamp()
+        );
 
         verify(repository, times(2))
                 .findByAccountIdOrderByEventTimestampAsc("acct-001");

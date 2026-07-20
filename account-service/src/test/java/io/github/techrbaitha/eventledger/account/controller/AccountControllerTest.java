@@ -99,4 +99,42 @@ class AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountId").value("acct-001"));
     }
+
+    @Test
+    void shouldReturnAccountDetails() throws Exception {
+
+        AccountBalanceResponse balance =
+                new AccountBalanceResponse(
+                        "acct-001",
+                        new BigDecimal("300.00")
+                );
+
+        EventRequest transaction =
+                new EventRequest(
+                        "evt-001",
+                        "acct-001",
+                        TransactionType.CREDIT,
+                        new BigDecimal("300.00"),
+                        "USD",
+                        Instant.parse("2026-05-15T14:02:11Z")
+                );
+
+        AccountDetailsResponse response =
+                new AccountDetailsResponse(
+                        "acct-001",
+                        balance,
+                        java.util.List.of(transaction)
+                );
+
+        when(accountService.getAccountDetails(eq("acct-001")))
+                .thenReturn(response);
+
+        mockMvc.perform(get("/accounts/acct-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountId").value("acct-001"))
+                .andExpect(jsonPath("$.balance.accountId").value("acct-001"))
+                .andExpect(jsonPath("$.balance.balance").value(300.00))
+                .andExpect(jsonPath("$.transactions[0].eventId").value("evt-001"))
+                .andExpect(jsonPath("$.transactions[0].accountId").value("acct-001"));
+    }
 }
