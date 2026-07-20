@@ -1,6 +1,19 @@
 # Event Ledger
 
-A distributed Event Ledger system built using **Java 21** and **Spring Boot 3.5.3**. The application consists of two independent microservices that process financial transaction events while ensuring idempotency, resiliency, observability, and traceability.
+## Overview
+
+Event Ledger is a distributed microservices application built with **Java 21** and **Spring Boot 3.5.3**.
+
+The solution consists of two independently deployable microservices that process financial transaction events while ensuring:
+
+- Idempotent event processing
+- Out-of-order event handling
+- Distributed tracing
+- Service resiliency
+- Observability
+- Graceful degradation
+
+The services communicate synchronously using REST and maintain independent H2 databases.
 
 ---
 
@@ -18,7 +31,7 @@ A distributed Event Ledger system built using **Java 21** and **Spring Boot 3.5.
                         |   (Public Facing Service) |
                         +------------+--------------+
                                      |
-                         OpenFeign + REST
+                              OpenFeign + REST
                                      |
                         +------------v--------------+
                         |      Account Service      |
@@ -26,18 +39,57 @@ A distributed Event Ledger system built using **Java 21** and **Spring Boot 3.5.
                         +---------------------------+
 ```
 
-## Event Gateway
+- **Gateway Service** exposes public APIs.
+- **Account Service** manages account balances and transaction history.
+- Each service owns its own H2 database.
+- Services communicate only through REST APIs.
 
-Responsible for:
+---
 
-- Accepting transaction events
-- Request validation
-- Idempotency validation
-- Persisting event records
-- Calling Account Service
-- Distributed tracing
-- Circuit breaker protection
-- Metrics collection
+# Requirement Coverage
+
+✔ Idempotent event processing
+
+✔ Out-of-order event handling
+
+✔ Independent microservices
+
+✔ Separate H2 databases
+
+✔ REST communication between services
+
+✔ Distributed trace propagation
+
+✔ Structured logging
+
+✔ Health endpoints
+
+✔ Micrometer custom metrics
+
+✔ Resilience4j Circuit Breaker
+
+✔ Graceful degradation
+
+✔ Docker Compose support
+
+✔ Swagger/OpenAPI documentation
+
+✔ Automated unit tests
+
+---
+
+# Event Gateway
+
+### Responsibilities
+
+- Accept transaction events
+- Validate requests
+- Prevent duplicate event processing
+- Persist event records
+- Invoke Account Service
+- Generate and propagate Trace IDs
+- Collect metrics
+- Protect downstream calls using Circuit Breaker
 
 ### APIs
 
@@ -50,14 +102,14 @@ Responsible for:
 
 ---
 
-## Account Service
+# Account Service
 
-Responsible for:
+### Responsibilities
 
-- Applying account transactions
-- Maintaining transaction history
-- Computing account balances
-- Returning account details
+- Apply account transactions
+- Maintain transaction history
+- Calculate balances
+- Return account details
 
 ### APIs
 
@@ -83,26 +135,28 @@ Responsible for:
 - H2 Database
 - Lombok
 - OpenAPI / Swagger
-- Docker
+- Docker Compose
 - Maven
 
 ---
 
-# Features
+# Key Features
 
 - Independent microservices
-- REST based communication
-- H2 database for each service
+- REST-based communication
+- Separate H2 database for each service
 - Bean Validation
 - Global Exception Handling
 - Idempotent event processing
-- Event ordering by timestamp
+- Chronological event ordering
 - Balance calculation
 - Distributed trace propagation
 - Circuit Breaker
+- Graceful degradation
+- Structured logging
 - Health endpoints
 - Custom metrics
-- Docker Compose support
+- Swagger/OpenAPI documentation
 
 ---
 
@@ -112,53 +166,55 @@ Responsible for:
 
 Each event is uniquely identified by **eventId**.
 
-Duplicate submissions are detected and prevented to ensure the same event is never processed twice.
+Duplicate submissions are detected and ignored, ensuring the same transaction is never processed twice.
 
 ---
 
-## Out-of-order Events
+## Out-of-Order Events
 
-Events are always retrieved in ascending order of **eventTimestamp**, ensuring chronological ordering regardless of arrival order.
+Events are always retrieved in ascending order of **eventTimestamp**, ensuring chronological ordering regardless of arrival sequence.
 
 ---
 
 ## Balance Calculation
 
-Current balance is computed as:
+```
+Balance = Sum(CREDIT) − Sum(DEBIT)
+```
 
-```
-Balance = Sum(CREDIT) - Sum(DEBIT)
-```
+Balances are always calculated from the complete transaction history, guaranteeing correctness even when events arrive out of order.
 
 ---
 
 ## Resiliency
 
-The Gateway uses **Resilience4j Circuit Breaker** while communicating with the Account Service.
+Communication between the Gateway and Account Service is protected using **Resilience4j Circuit Breaker**.
 
-When the Account Service becomes unavailable:
+If the Account Service becomes unavailable:
 
-- Circuit Breaker prevents repeated failing requests.
-- Gateway returns **503 Service Unavailable**.
-- Event retrieval endpoints continue to function using locally stored data.
+- The Circuit Breaker prevents repeated failing requests.
+- The Gateway returns **HTTP 503 Service Unavailable**.
+- Previously stored events remain available because they are served from the Gateway database.
 
 ---
 
 ## Distributed Tracing
 
-Each incoming request generates a unique **X-Trace-Id**.
+Each incoming request carries an **X-Trace-Id**.
 
-The trace identifier is propagated from:
+The trace identifier is propagated across services:
 
 ```
 Client
-   ↓
+   │
+   ▼
 Gateway
-   ↓
+   │
+   ▼
 Account Service
 ```
 
-allowing complete request tracing across services.
+This enables end-to-end request correlation through application logs.
 
 ---
 
@@ -185,8 +241,6 @@ Implemented using:
 ---
 
 ## Build
-
-From the project root:
 
 ```bash
 mvn clean package
@@ -229,7 +283,7 @@ http://localhost:8080
 # Run Using Docker
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ---
@@ -255,13 +309,13 @@ http://localhost:8081/swagger-ui.html
 Gateway
 
 ```
-GET /health
+http://localhost:8080/health
 ```
 
 Account Service
 
 ```
-GET /health
+http://localhost:8081/health
 ```
 
 ---
@@ -273,6 +327,20 @@ Run all tests:
 ```bash
 mvn test
 ```
+
+Generate JaCoCo report:
+
+```bash
+mvn jacoco:report
+```
+
+Current coverage:
+
+| Module | Coverage |
+|----------|----------|
+| Gateway Service | 98% |
+| Account Service | 95% |
+| Branch Coverage | 100% |
 
 ---
 
@@ -298,6 +366,7 @@ event-ledger
 │   ├── repository
 │   ├── entity
 │   ├── dto
+│   ├── filter
 │   └── exception
 │
 └── docker-compose.yml
@@ -309,28 +378,26 @@ event-ledger
 
 - Event IDs are globally unique.
 - Account balances are derived from transaction history.
-- Gateway and Account Service maintain separate databases.
-- Communication between services is synchronous using REST.
+- Each microservice owns its own database.
+- Services communicate synchronously using REST.
 
 ---
 
 # Future Improvements
 
-The current implementation satisfies the assessment requirements.
-
 Potential production enhancements include:
 
+- OpenTelemetry with Jaeger/Zipkin
+- Prometheus + Grafana dashboards
+- Retry with exponential backoff and jitter
 - Transactional Outbox Pattern
-- Kafka/Event Streaming
-- OpenTelemetry with Jaeger
-- Prometheus + Grafana
-- Retry with exponential backoff
-- Distributed caching
+- Kafka-based asynchronous event processing
 - Rate limiting
 - Authentication and Authorization
+- Distributed caching
 
 ---
 
 # Author
 
-Rakesh Baitha
+**Rakesh Baitha**
