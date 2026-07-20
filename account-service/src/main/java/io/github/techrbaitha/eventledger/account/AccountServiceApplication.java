@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.gateway;
+package io.github.techrbaitha.eventledger.account;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

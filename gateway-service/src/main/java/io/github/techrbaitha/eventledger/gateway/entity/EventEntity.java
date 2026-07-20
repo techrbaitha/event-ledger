@@ -9,7 +9,11 @@ import java.time.Instant;
 @Entity
 @Table(
         name = "events",
-        uniqueConstraints = @UniqueConstraint(columnNames = "event_id")
+        uniqueConstraints = @UniqueConstraint(columnNames = "event_id"),
+        indexes = {
+                @Index(name = "idx_event_id", columnList = "event_id"),
+                @Index(name = "idx_account_id", columnList = "accountId")
+        }
 )
 public class EventEntity {
 
@@ -27,16 +31,17 @@ public class EventEntity {
     @Column(nullable = false)
     private TransactionType type;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 3)
     private String currency;
 
     @Column(nullable = false)
     private Instant eventTimestamp;
 
     protected EventEntity() {
+        // Required by JPA
     }
 
     public EventEntity(String eventId,

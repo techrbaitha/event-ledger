@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.gateway.dto;
+package io.github.techrbaitha.eventledger.account.dto;
 
 import java.math.BigDecimal;
 

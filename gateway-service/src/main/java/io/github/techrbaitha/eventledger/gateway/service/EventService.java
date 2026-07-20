@@ -57,29 +57,33 @@ public class EventService {
             // Persist event in Gateway database
             repository.saveAndFlush(entity);
 
-            // Increment custom metric
-            processedEventsCounter.increment();
-
             // Forward transaction to Account Service
-            accountServiceClient.applyTransaction(
+            accountServiceClient.processTransaction(
                     request.accountId(),
                     request
             );
 
+            // Increment metric only after successful processing
+            processedEventsCounter.increment();
+
             log.info(
-                    "Event persisted and transaction applied successfully. eventId={}",
+                    "Successfully processed event. eventId={}",
                     request.eventId()
             );
 
             return new EventResponse(
                     request.eventId(),
                     "ACCEPTED",
-                    "Event accepted successfully."
+                    "Event accepted successfully.",
+                    request.eventTimestamp()
             );
 
         } catch (DataIntegrityViolationException ex) {
 
-            log.warn("Duplicate event received. eventId={}", request.eventId());
+            log.warn(
+                    "Duplicate event received. eventId={}",
+                    request.eventId()
+            );
 
             EventEntity existing = repository.findByEventId(request.eventId())
                     .orElseThrow(() -> ex);
@@ -87,7 +91,8 @@ public class EventService {
             return new EventResponse(
                     existing.getEventId(),
                     "ACCEPTED",
-                    "Duplicate event ignored."
+                    "Duplicate event ignored.",
+                    existing.getEventTimestamp()
             );
         }
     }
@@ -99,11 +104,13 @@ public class EventService {
         log.error(
                 "Account Service unavailable. eventId={}, reason={}",
                 request.eventId(),
-                ex.getMessage()
+                ex.getMessage(),
+                ex
         );
 
         throw new ServiceUnavailableException(
-                "Account Service is currently unavailable."
+                "Account Service is currently unavailable.",
+                ex
         );
     }
 }

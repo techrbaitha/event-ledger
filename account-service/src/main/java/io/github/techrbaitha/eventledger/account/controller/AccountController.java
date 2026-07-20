@@ -1,10 +1,10 @@
-package io.github.techrbaitha.eventledger.gateway.controller;
+package io.github.techrbaitha.eventledger.account.controller;
 
-import io.github.techrbaitha.eventledger.gateway.dto.AccountBalanceResponse;
-import io.github.techrbaitha.eventledger.gateway.dto.AccountDetailsResponse;
-import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
-import io.github.techrbaitha.eventledger.gateway.dto.TransactionResponse;
-import io.github.techrbaitha.eventledger.gateway.service.AccountService;
+import io.github.techrbaitha.eventledger.account.dto.AccountBalanceResponse;
+import io.github.techrbaitha.eventledger.account.dto.AccountDetailsResponse;
+import io.github.techrbaitha.eventledger.account.dto.EventRequest;
+import io.github.techrbaitha.eventledger.account.dto.TransactionResponse;
+import io.github.techrbaitha.eventledger.account.service.AccountService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

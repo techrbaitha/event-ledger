@@ -1,5 +1,6 @@
-package io.github.techrbaitha.eventledger.gateway.dto;
+package io.github.techrbaitha.eventledger.account.dto;
 
+import io.github.techrbaitha.eventledger.account.enums.TransactionType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -15,7 +16,7 @@ public record EventRequest(
         @NotBlank(message = "accountId is required")
         String accountId,
 
-        io.github.techrbaitha.eventledger.gateway.enums.TransactionType type,
+        TransactionType type,
 
         @NotNull(message = "amount is required")
         @Positive(message = "amount must be greater than zero")

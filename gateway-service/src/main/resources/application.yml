@@ -5,6 +5,10 @@ spring:
   application:
     name: gateway-service
 
+account:
+  service:
+    url: ${ACCOUNT_SERVICE_URL:http://localhost:8081}
+
   datasource:
     url: jdbc:h2:mem:gatewaydb
     driver-class-name: org.h2.Driver

@@ -1,13 +1,12 @@
-package io.github.techrbaitha.eventledger.gateway.service;
+package io.github.techrbaitha.eventledger.account.service;
 
-import io.github.techrbaitha.eventledger.gateway.dto.AccountBalanceResponse;
-import io.github.techrbaitha.eventledger.gateway.dto.AccountDetailsResponse;
-import io.github.techrbaitha.eventledger.gateway.dto.EventRequest;
-import io.github.techrbaitha.eventledger.gateway.dto.TransactionResponse;
-import io.github.techrbaitha.eventledger.gateway.entity.AccountTransaction;
-import io.github.techrbaitha.eventledger.gateway.enums.TransactionType;
-import io.github.techrbaitha.eventledger.gateway.exception.DuplicateTransactionException;
-import io.github.techrbaitha.eventledger.gateway.repository.AccountTransactionRepository;
+import io.github.techrbaitha.eventledger.account.dto.AccountBalanceResponse;
+import io.github.techrbaitha.eventledger.account.dto.AccountDetailsResponse;
+import io.github.techrbaitha.eventledger.account.dto.EventRequest;
+import io.github.techrbaitha.eventledger.account.dto.TransactionResponse;
+import io.github.techrbaitha.eventledger.account.entity.AccountTransaction;
+import io.github.techrbaitha.eventledger.account.exception.DuplicateTransactionException;
+import io.github.techrbaitha.eventledger.account.repository.AccountTransactionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
-package io.github.techrbaitha.eventledger.gateway.entity;
+package io.github.techrbaitha.eventledger.account.entity;
 
-import io.github.techrbaitha.eventledger.gateway.enums.TransactionType;
+import io.github.techrbaitha.eventledger.account.enums.TransactionType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -60,9 +60,4 @@ public class AccountTransaction {
         this.eventTimestamp = eventTimestamp;
     }
 
-    public AccountTransaction(@NotBlank(message = "eventId is required") String eventId, @NotBlank(message = "accountId is required") String accountId, @NotBlank(message = "type is required") String type, @NotNull(message = "amount is required") @Positive(message = "amount must be greater than zero") BigDecimal amount, @NotBlank(message = "currency is required") String currency, @NotNull(message = "eventTimestamp is required") Instant eventTimestamp) {
-    }
-
-    public AccountTransaction(String s, String s1, TransactionType transactionType) {
-    }
 }

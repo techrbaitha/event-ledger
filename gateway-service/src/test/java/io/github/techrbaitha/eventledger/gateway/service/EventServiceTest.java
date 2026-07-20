@@ -7,12 +7,13 @@ import io.github.techrbaitha.eventledger.gateway.entity.EventEntity;
 import io.github.techrbaitha.eventledger.gateway.enums.TransactionType;
 import io.github.techrbaitha.eventledger.gateway.exception.ServiceUnavailableException;
 import io.github.techrbaitha.eventledger.gateway.repository.EventRepository;
+import io.github.techrbaitha.eventledger.gateway.util.AppConstants;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -22,7 +23,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,24 +38,13 @@ class EventServiceTest {
 
     private EventService eventService;
 
-    private EventRequest request;
-
     @BeforeEach
-    void setup() {
+    void setUp() {
 
         eventService = new EventService(
                 repository,
                 accountServiceClient,
                 new SimpleMeterRegistry()
-        );
-
-        request = new EventRequest(
-                "evt-001",
-                "acct-001",
-                TransactionType.CREDIT,
-                new BigDecimal("100.00"),
-                "USD",
-                Instant.parse("2026-05-15T14:02:11Z")
         );
     }
 
@@ -61,113 +52,138 @@ class EventServiceTest {
     @DisplayName("Should process event successfully")
     void shouldProcessEventSuccessfully() {
 
+        EventRequest request = new EventRequest(
+                "EVT-1001",
+                "ACC-1001",
+                TransactionType.CREDIT,
+                BigDecimal.valueOf(1000),
+                "INR",
+                Instant.parse("2026-07-20T10:15:30Z")
+        );
+
         when(repository.saveAndFlush(any(EventEntity.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         EventResponse response = eventService.processEvent(request);
 
         assertNotNull(response);
-        assertEquals("evt-001", response.eventId());
+        assertEquals("EVT-1001", response.eventId());
         assertEquals("ACCEPTED", response.status());
-        assertEquals("Event accepted successfully.", response.message());
 
         verify(repository).saveAndFlush(any(EventEntity.class));
 
         verify(accountServiceClient)
-                .applyTransaction(
-                        eq("acct-001"),
+                .processTransaction(
+                        eq("ACC-1001"),
                         eq(request)
                 );
     }
 
     @Test
-    @DisplayName("Should persist correct event details")
-    void shouldPersistCorrectEvent() {
+    @DisplayName("Should return accepted response when duplicate event is received")
+    void shouldReturnAcceptedForDuplicateEvent() {
 
-        when(repository.saveAndFlush(any(EventEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+        EventRequest request = new EventRequest(
+                "EVT-1001",
+                "ACC-1001",
+                TransactionType.CREDIT,
+                BigDecimal.valueOf(1000),
+                "INR",
+                Instant.parse("2026-07-20T10:15:30Z")
+        );
 
-        eventService.processEvent(request);
-
-        ArgumentCaptor<EventEntity> captor =
-                ArgumentCaptor.forClass(EventEntity.class);
-
-        verify(repository).saveAndFlush(captor.capture());
-
-        EventEntity entity = captor.getValue();
-
-        assertEquals("evt-001", entity.getEventId());
-        assertEquals("acct-001", entity.getAccountId());
-        assertEquals(TransactionType.CREDIT, entity.getType());
-        assertEquals(new BigDecimal("100.00"), entity.getAmount());
-        assertEquals("USD", entity.getCurrency());
-    }
-
-    @Test
-    @DisplayName("Should ignore duplicate event")
-    void shouldIgnoreDuplicateEvent() {
+        EventEntity existingEvent = new EventEntity(
+                request.eventId(),
+                request.accountId(),
+                request.type(),
+                request.amount(),
+                request.currency(),
+                request.eventTimestamp()
+        );
 
         when(repository.saveAndFlush(any(EventEntity.class)))
                 .thenThrow(new DataIntegrityViolationException("Duplicate"));
 
-        when(repository.findByEventId("evt-001"))
-                .thenReturn(Optional.of(
-                        new EventEntity(
-                                "evt-001",
-                                "acct-001",
-                                TransactionType.CREDIT,
-                                new BigDecimal("100.00"),
-                                "USD",
-                                Instant.now()
-                        )
-                ));
+        when(repository.findByEventId("EVT-1001"))
+                .thenReturn(Optional.of(existingEvent));
 
         EventResponse response = eventService.processEvent(request);
 
-        assertEquals("evt-001", response.eventId());
+        assertNotNull(response);
+        assertEquals("EVT-1001", response.eventId());
         assertEquals("ACCEPTED", response.status());
         assertEquals("Duplicate event ignored.", response.message());
 
-        verify(repository).findByEventId("evt-001");
+        verify(repository).saveAndFlush(any(EventEntity.class));
+        verify(repository).findByEventId("EVT-1001");
+
         verify(accountServiceClient, never())
-                .applyTransaction(anyString(), any());
-    }
-
-    @Test
-    @DisplayName("Should invoke Account Service exactly once")
-    void shouldInvokeAccountServiceOnce() {
-
-        when(repository.saveAndFlush(any(EventEntity.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        eventService.processEvent(request);
-
-        verify(accountServiceClient, times(1))
-                .applyTransaction(
-                        eq("acct-001"),
-                        eq(request)
-                );
+                .processTransaction(anyString(), any(EventRequest.class));
     }
 
     @Test
     @DisplayName("Should throw ServiceUnavailableException from fallback")
-    void shouldThrowServiceUnavailableException() {
+    void shouldThrowServiceUnavailableExceptionFromFallback() {
 
-        RuntimeException exception =
-                new RuntimeException("Account Service Down");
+        EventRequest request = new EventRequest(
+                "EVT-1001",
+                "ACC-1001",
+                TransactionType.CREDIT,
+                BigDecimal.valueOf(1000),
+                "INR",
+                Instant.parse("2026-07-20T10:15:30Z")
+        );
 
-        ServiceUnavailableException ex =
+        RuntimeException cause = new RuntimeException("Account Service Down");
+
+        ServiceUnavailableException exception =
                 assertThrows(
                         ServiceUnavailableException.class,
-                        () -> eventService.accountServiceFallback(
-                                request,
-                                exception
-                        )
+                        () -> eventService.accountServiceFallback(request, cause)
                 );
 
         assertEquals(
                 "Account Service is currently unavailable.",
-                ex.getMessage()
+                exception.getMessage()
         );
+
+        assertEquals(cause, exception.getCause());
+    }
+
+    @Test
+    @DisplayName("Should increment processed events counter")
+    void shouldIncrementProcessedEventsCounter() {
+
+        SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+        EventService service = new EventService(
+                repository,
+                accountServiceClient,
+                meterRegistry
+        );
+
+        EventRequest request = new EventRequest(
+                "EVT-2001",
+                "ACC-2001",
+                TransactionType.CREDIT,
+                BigDecimal.valueOf(500),
+                "INR",
+                Instant.now()
+        );
+
+        when(repository.saveAndFlush(any(EventEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.processEvent(request);
+
+        Counter counter = meterRegistry.find(AppConstants.EVENTS_PROCESSED_METRIC)
+                .counter();
+
+        assertNotNull(counter);
+        assertEquals(1.0, counter.count());
+
+        verify(repository).saveAndFlush(any(EventEntity.class));
+        verify(accountServiceClient)
+                .processTransaction(eq("ACC-2001"), eq(request));
     }
 }

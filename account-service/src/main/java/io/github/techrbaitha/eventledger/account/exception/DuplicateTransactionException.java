@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.gateway.exception;
+package io.github.techrbaitha.eventledger.account.exception;
 
 public class DuplicateTransactionException extends RuntimeException {
 

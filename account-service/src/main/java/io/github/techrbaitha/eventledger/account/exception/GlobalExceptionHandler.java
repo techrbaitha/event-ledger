@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.gateway.exception;
+package io.github.techrbaitha.eventledger.account.exception;
 
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;

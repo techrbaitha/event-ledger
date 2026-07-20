@@ -1,4 +1,4 @@
-package io.github.techrbaitha.eventledger.gateway.controller;
+package io.github.techrbaitha.eventledger.account.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

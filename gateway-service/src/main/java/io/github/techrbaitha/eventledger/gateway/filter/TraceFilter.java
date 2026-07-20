@@ -15,22 +15,21 @@ import java.util.UUID;
 @Component
 public class TraceFilter extends OncePerRequestFilter {
 
-    public static final String TRACE_ID = AppConstants.TRACE_ID_HEADER;
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String traceId = request.getHeader(TRACE_ID);
+        String traceId = request.getHeader(AppConstants.TRACE_ID_HEADER);
 
         if (traceId == null || traceId.isBlank()) {
             traceId = UUID.randomUUID().toString();
         }
 
-        MDC.put("traceId", traceId);
-        response.setHeader(TRACE_ID, traceId);
+        MDC.put(AppConstants.TRACE_ID, traceId);
+
+        response.setHeader(AppConstants.TRACE_ID_HEADER, traceId);
 
         try {
             filterChain.doFilter(request, response);
